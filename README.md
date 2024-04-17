@@ -40,6 +40,28 @@ This is useful for development and debugging purposes so you can see nginx logs.
 
 So in summary, this line is configuring the Docker container to start the nginx web server process on container startup, and run it in the foreground for easier logging and debugging.
 
+## Build the image
+
+    docker build -t my-cdn .
+
+The `-t` flag tags the image, in this case with the name `my-cdn`. Tagging the image allows it to be easily referred to later, for example when running a container from the image.
+
+this command is building a Docker image using the instructions in the Dockerfile in the current directory, and tagging the resulting image as 
+`my-cdn`. This allows the image to then be run as a container using 
+`docker run my-cdn` for example.
+
+## Run the container
+
+    docker run -d -p 8080:80 --name local-cdn my-cdn
+
+`-d` runs the container in detached/background mode so it doesn't block the terminal
+
+`-p 8080:80` publishes port 80 inside the container to port 8080 on the host machine, so traffic on 8080 will be forwarded to the Nginx server inside
+
+`--name local-cdn` names the container "local-cdn" for easy reference later
+
+`my-cdn` specifies the image name to use, which was tagged when building
+
 ## Explain nginx.conf
 
 ```conf

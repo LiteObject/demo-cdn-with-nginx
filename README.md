@@ -1,4 +1,13 @@
-# How to create a CDN locally with NGINX
+# How to create a CDN Proxy locally with NGINX
+
+## What this project does
+This project demonstrates how to use NGINX as a **local CDN proxy** that:
+- Routes requests to external CDNs (like Optimizely)
+- Adds CORS headers to solve cross-origin issues
+- Provides a single local endpoint for multiple external CDN resources
+- Acts as a reverse proxy for CDN content
+
+**Note**: This is not a true CDN (which requires geographic distribution), but rather a local proxy that helps access external CDNs more easily and solve common CORS issues in web development.
 
 ## What is CDN?
 A content delivery network, or CDN, is a geographically distributed network of servers that help deliver internet content more efficiently. A CDN allows for the fast delivery of assets needed for loading internet content such as HTML pages, JavaScript files, CSS files, image files and videos by distributing cached copies of them to numerous edge servers located closer to the user.
@@ -64,28 +73,87 @@ this command is building a Docker image using the instructions in the Dockerfile
 
 ## Explain nginx.conf
 
+Our nginx.conf demonstrates a CDN proxy setup with the following features:
+
 ```conf
-# the default server
-server {
-  listen 80;
-
-  # the root of files to serve
-  root /usr/share/nginx/html; 
-
-  # indexes if no file is specified
-  index index.html index.htm;
+# Events block - connection processing
+events {
+    worker_connections 1024;
 }
 
+# HTTP context with DNS resolver
+http {
+    # Configure DNS resolver for upstream server name resolution
+    resolver 8.8.8.8 valid=1200s;
+    
+    # Main server block - handles all incoming requests on port 80
+    server {
+        listen 80;
+        server_name localhost;
+        
+        # Enable debug logging for troubleshooting
+        error_log /var/log/nginx/error.log debug;
+        access_log /var/log/nginx/access.log;
+        
+        # Location block for redirecting to Google
+        # Example of proxying requests to an external site
+        location /redirect-to-google {
+            # Alternative: Use 301 redirect instead of proxy
+            # return 301 https://www.google.com;
+            proxy_pass https://www.google.com;
+        }
+        
+        # Location block for proxying Optimizely CDN datafiles
+        # This acts as a CORS-enabled proxy for accessing external CDN resources
+        location /datafiles/ {
+            # Don't forward the original request body to upstream
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            
+            # Proxy requests to Optimizely's CDN
+            proxy_pass https://cdn.optimizely.com/datafiles/;
+            
+            # Add CORS headers to allow cross-origin requests
+            add_header 'Access-Control-Allow-Methods' 'GET,OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+            add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+            
+            # Set the Host header to match the upstream server
+            proxy_set_header Host cdn.optimizely.com;
+        }
+        
+        # Document root directory for serving static files
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    }
+}
 ```
 
-The `nginx.conf` file is the main configuration file for Nginx. It contains global configuration settings as well as server blocks that define how requests are handled.
+This configuration creates a **local CDN proxy** that:
 
-In this simple example, there is a single server block that defines the default server.
+### Key Features:
+- **DNS Resolution**: Uses Google's DNS (8.8.8.8) to resolve upstream server names
+- **External Site Proxy**: `/redirect-to-google` demonstrates basic proxying to external sites
+- **CORS-Enabled CDN Proxy**: `/datafiles/` route proxies to Optimizely's CDN while adding CORS headers
+- **Cross-Origin Support**: Adds necessary CORS headers to allow web applications to access external CDN resources
+- **Static File Serving**: Still serves local static files from `/usr/share/nginx/html`
+- **Debug Logging**: Enabled for troubleshooting proxy issues
 
-The `listen 80;` line tells Nginx to listen for incoming requests on port 80.
+### Why This Setup is Useful:
+1. **Solves CORS Issues**: Web browsers block cross-origin requests by default. This proxy adds the necessary CORS headers.
+2. **Single Endpoint**: Instead of making requests to multiple CDNs, your application can use one local endpoint.
+3. **Development-Friendly**: Allows testing CDN integrations locally without dealing with CORS restrictions.
+4. **Flexible Routing**: Can easily add more CDN proxies by adding additional location blocks.
 
-The `root` directive specifies the root folder that contains the files to be served, in this case `/usr/share/nginx/html`.
+### Example Usage:
+Instead of directly accessing:
+```
+https://cdn.optimizely.com/datafiles/your-file.json
+```
 
-The `index` directive defines what file should be served if the request URI is a directory - here it will check for `index.html` and `index.htm`.
+Your application can use:
+```
+http://localhost:8080/datafiles/your-file.json
+```
 
-Additional server blocks can be added for virtual hosts. Inside server blocks you can configure location blocks, authentication, SSL, logging and more.
+And get the same content with proper CORS headers for cross-origin access.

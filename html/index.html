@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN Proxy Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .endpoint h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .endpoint code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .test-button {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .test-button:hover {
+            background: #218838;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 CDN Proxy Server</h1>
+
+        <p>Welcome to your local CDN proxy! This NGINX server acts as a proxy to external CDNs, solving CORS issues and
+            providing a single endpoint for multiple CDN resources.</p>
+
+        <h2>Available Endpoints</h2>
+
+        <div class="endpoint">
+            <h3>📂 Optimizely CDN Proxy</h3>
+            <p><strong>Endpoint:</strong> <code>/datafiles/</code></p>
+            <p><strong>Proxies to:</strong> <code>https://cdn.optimizely.com/datafiles/</code></p>
+            <p><strong>Features:</strong> CORS-enabled, GET and OPTIONS methods supported</p>
+            <p><strong>Example:</strong> <code>/datafiles/your-project-id.json</code></p>
+            <button class="test-button" onclick="testEndpoint('/datafiles/')">Test Endpoint</button>
+        </div>
+
+        <div class="endpoint">
+            <h3>🌐 Google Proxy</h3>
+            <p><strong>Endpoint:</strong> <code>/redirect-to-google</code></p>
+            <p><strong>Proxies to:</strong> <code>https://www.google.com</code></p>
+            <p><strong>Purpose:</strong> Example of external site proxying</p>
+            <a href="/redirect-to-google" class="test-button" target="_blank">Test Google Proxy</a>
+        </div>
+
+        <h2>How to Use</h2>
+        <ol>
+            <li>Replace direct CDN URLs in your application with local proxy URLs</li>
+            <li>Instead of <code>https://cdn.optimizely.com/datafiles/file.json</code></li>
+            <li>Use <code>http://localhost:8080/datafiles/file.json</code></li>
+            <li>Enjoy CORS-free CDN access! 🎉</li>
+        </ol>
+
+        <h2>Server Status</h2>
+        <button class="test-button" onclick="checkStatus()">Check Server Status</button>
+        <div id="status-result"></div>
+
+        <footer
+            style="margin-top: 40px; text-align: center; color: #666; border-top: 1px solid #eee; padding-top: 20px;">
+            <p>CDN Proxy powered by NGINX | <a href="https://github.com/LiteObject/demo-cdn-with-nginx"
+                    target="_blank">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        function testEndpoint(endpoint) {
+            const statusDiv = document.getElementById('status-result');
+            statusDiv.innerHTML = '<div class="status">Testing endpoint...</div>';
+
+            fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerHTML = `<div class="status success">✅ Endpoint ${endpoint} is working! Status: ${response.status}</div>`;
+                    } else {
+                        statusDiv.innerHTML = `<div class="status error">⚠️ Endpoint returned status: ${response.status}</div>`;
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = `<div class="status error">❌ Error testing endpoint: ${error.message}</div>`;
+                });
+        }
+
+        function checkStatus() {
+            const statusDiv = document.getElementById('status-result');
+            statusDiv.innerHTML = '<div class="status">Checking server status...</div>';
+
+            fetch('/', {
+                method: 'HEAD'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerHTML = '<div class="status success">✅ Server is running perfectly!</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="status error">⚠️ Server returned an error</div>';
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = '<div class="status error">❌ Server connection failed</div>';
+                });
+        }
+    </script>
+</body>
+
+</html>

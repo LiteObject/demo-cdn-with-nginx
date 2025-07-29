@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Basic CDN Proxy
+  cdn-proxy-basic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    container_name: cdn-proxy-basic
+    restart: unless-stopped
+    volumes:
+      - nginx_logs_basic:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Advanced CDN Proxy with all features
+  cdn-proxy-advanced:
+    build:
+      context: .
+      dockerfile: Dockerfile.advanced
+    ports:
+      - "8081:80"
+    container_name: cdn-proxy-advanced
+    restart: unless-stopped
+    volumes:
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs_advanced:/var/log/nginx
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Log viewer service
+  log-viewer:
+    image: amir20/dozzle:latest
+    container_name: cdn-proxy-logs
+    ports:
+      - "8088:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  nginx_cache:
+    driver: local
+  nginx_logs_basic:
+    driver: local
+  nginx_logs_advanced:
+    driver: local

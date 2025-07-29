@@ -1,0 +1,42 @@
+FROM nginx:1.25-alpine
+
+# Install additional packages for advanced features
+RUN apk add --no-cache \
+    curl \
+    bash \
+    tzdata
+
+# Create cache directories
+RUN mkdir -p /var/cache/nginx/cdn \
+    && mkdir -p /var/cache/nginx/static \
+    && chown -R nginx:nginx /var/cache/nginx
+
+# Copy advanced nginx configuration
+COPY nginx-advanced.conf /etc/nginx/nginx.conf
+
+# Copy static HTML files
+COPY ./html /usr/share/nginx/html
+
+# Create error pages directory and basic error pages
+RUN mkdir -p /usr/share/nginx/html/errors
+
+# Create basic error pages
+RUN echo '<!DOCTYPE html><html><head><title>400 Bad Request</title></head><body><h1>400 - Bad Request</h1><p>Your request was malformed.</p></body></html>' > /usr/share/nginx/html/errors/400.html \
+    && echo '<!DOCTYPE html><html><head><title>401 Unauthorized</title></head><body><h1>401 - Unauthorized</h1><p>Authentication required.</p></body></html>' > /usr/share/nginx/html/errors/401.html \
+    && echo '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 - Forbidden</h1><p>Access denied.</p></body></html>' > /usr/share/nginx/html/errors/403.html \
+    && echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>404 - Not Found</h1><p>The requested resource was not found.</p></body></html>' > /usr/share/nginx/html/errors/404.html \
+    && echo '<!DOCTYPE html><html><head><title>429 Too Many Requests</title></head><body><h1>429 - Too Many Requests</h1><p>Rate limit exceeded. Please try again later.</p></body></html>' > /usr/share/nginx/html/errors/429.html \
+    && echo '<!DOCTYPE html><html><head><title>Server Error</title></head><body><h1>Server Error</h1><p>An internal server error occurred.</p></body></html>' > /usr/share/nginx/html/errors/50x.html
+
+# Set proper permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html
+
+# Expose port 80 for HTTP traffic
+EXPOSE 80
+
+# Add health check with advanced endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost/health || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
